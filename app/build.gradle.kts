@@ -47,6 +47,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation(libs.androidx.compose.material3)
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.foundation.layout)

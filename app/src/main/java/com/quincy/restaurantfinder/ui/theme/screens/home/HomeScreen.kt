@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,7 +24,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +50,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.quincy.restaurantfinder.data.model.Place
 import com.quincy.restaurantfinder.models.LocationViewModel
 import com.quincy.restaurantfinder.ui.theme.RestaurantFinderTheme
+import com.quincy.restaurantfinder.ui.theme.components.PlaceCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +63,6 @@ fun HomeScreen(
     val context = LocalContext.current
     
     // Page 0: Hospital Map, Page 1: Hospital List.
-    // Initial page is 1 (the list). Swiping right (finger moves right) goes to Page 0 (the map).
     val hospitalPagerState = rememberPagerState(initialPage = 1) { 2 }
 
     val fusedLocationClient = remember {
@@ -187,7 +185,7 @@ fun HomeScreen(
                         item(span = { GridItemSpan(2) }) { Spacer(modifier = Modifier.height(16.dp)) }
                     }
 
-                    // Main Map Section (Restaurants Only now, as Hospitals have their own)
+                    // Main Map Section (Restaurants Only)
                     if (state.latitude != null && state.longitude != null) {
                         item(span = { GridItemSpan(2) }) {
                             Text(
@@ -246,7 +244,7 @@ fun HomeScreen(
                         item(span = { GridItemSpan(2) }) { Spacer(modifier = Modifier.height(16.dp)) }
                     }
 
-                    // Nearby Restaurants Section (2 columns)
+                    // Nearby Restaurants Section
                     item(span = { GridItemSpan(2) }) {
                         Text(
                             "Restaurants Near You",
@@ -265,111 +263,7 @@ fun HomeScreen(
                         }
                     }
                     
-                    // Nearby Hospitals Section Header
-                    item(span = { GridItemSpan(2) }) {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            "Hospitals Near You",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                        Text(
-                            "Swipe right for map",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
-                    }
 
-                    if (state.nearbyHospitals.isEmpty() && !state.isLoading) {
-                        item(span = { GridItemSpan(2) }) {
-                            Text("No hospitals found nearby.", modifier = Modifier.padding(16.dp))
-                        }
-                    } else {
-                        // Horizontal Pager for Hospitals: Map (Page 0) <-> List (Page 1)
-                        item(span = { GridItemSpan(2) }) {
-                            HorizontalPager(
-                                state = hospitalPagerState,
-                                modifier = Modifier.fillMaxWidth()
-                            ) { page ->
-                                if (page == 0) {
-                                    // Nearby Hospitals Map Page
-                                    val userLocation = remember(state.latitude, state.longitude) {
-                                        LatLng(state.latitude ?: 0.0, state.longitude ?: 0.0)
-                                    }
-                                    val cameraPositionState = rememberCameraPositionState {
-                                        position = CameraPosition.fromLatLngZoom(userLocation, 14f)
-                                    }
-                                    
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(400.dp)
-                                            .padding(8.dp),
-                                        shape = RoundedCornerShape(16.dp),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                                    ) {
-                                        GoogleMap(
-                                            modifier = Modifier.fillMaxSize(),
-                                            cameraPositionState = cameraPositionState,
-                                            properties = MapProperties(isMyLocationEnabled = true)
-                                        ) {
-                                            state.nearbyHospitals.forEach { hospital ->
-                                                Marker(
-                                                    state = MarkerState(
-                                                        position = LatLng(
-                                                            hospital.geometry.location.lat,
-                                                            hospital.geometry.location.lng
-                                                        )
-                                                    ),
-                                                    title = hospital.name ?: "Hospital",
-                                                    snippet = hospital.vicinity,
-                                                    onClick = {
-                                                        onNavigateToDetails(hospital.place_id ?: "")
-                                                        true
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // Nearby Hospitals List Page in Two Columns
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        state.nearbyHospitals.chunked(2).forEach { rowItems ->
-                                            Row(modifier = Modifier.fillMaxWidth()) {
-                                                rowItems.forEach { hospital ->
-                                                    Box(modifier = Modifier.weight(1f)) {
-                                                        PlaceCard(
-                                                            place = hospital,
-                                                            isHospital = true,
-                                                            onClick = { onNavigateToDetails(hospital.place_id ?: "") }
-                                                        )
-                                                    }
-                                                }
-                                                if (rowItems.size == 1) {
-                                                    Spacer(modifier = Modifier.weight(1f))
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    item(span = { GridItemSpan(2) }) {
-                        Spacer(modifier = Modifier.height(32.dp))
-                    }
-                }
-            }
-
-            if (state.error != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error: ${state.error}", color = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
     }
 }
 
@@ -418,7 +312,7 @@ fun PlaceCard(place: Place, isHospital: Boolean = false, onClick: () -> Unit) {
                         )
                     }
                 }
-                
+
                 place.rating?.let { rating ->
                     Surface(
                         modifier = Modifier
@@ -431,9 +325,18 @@ fun PlaceCard(place: Place, isHospital: Boolean = false, onClick: () -> Unit) {
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Star, null, tint = Color(0xFFFFB300), modifier = Modifier.size(12.dp))
+                            Icon(
+                                Icons.Default.Star,
+                                null,
+                                tint = Color(0xFFFFB300),
+                                modifier = Modifier.size(12.dp)
+                            )
                             Spacer(Modifier.width(2.dp))
-                            Text(rating.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                rating.toString(),
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall
+                            )
                         }
                     }
                 }
@@ -459,12 +362,12 @@ fun PlaceCard(place: Place, isHospital: Boolean = false, onClick: () -> Unit) {
             }
         }
     }
-}
+}}}}
 
-@Preview(showBackground = true)
-@Composable
-private fun HomePreview() {
-    RestaurantFinderTheme {
-        HomeScreen(onNavigateToDetails = {})
-    }
-}
+
+//@Preview(showBackground = false)
+//@Composable
+// fun HomePreview() {
+//    RestaurantFinderTheme {
+//        HomeScreen(onNavigateToDetails = {})
+//    }}
